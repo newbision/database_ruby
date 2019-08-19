@@ -1,0 +1,131 @@
+<html>
+<head>
+	<script src="javascript/temnos_viewer.js"></script>
+	<link href="https://google-code-prettify.googlecode.com/svn/loader/prettify.css" type="text/css" rel="stylesheet" />
+	<script src="https://google-code-prettify.googlecode.com/svn/loader/prettify.js"></script>
+	<script src="javascript/JOB.js"></script>
+	<style type="text/css" media="screen">
+		body{
+			margin:0px;
+			padding:0px;
+		}
+		.bc_digit{
+			float:left;
+		}
+
+		.bc_digit_bit{
+			float:left;
+			width:3px;
+			height: 18px;
+		}
+		.bc_digit_bit.black{
+			background-color: #000;
+		}
+		.bc_digit_bit.white{
+			background-color: #fff;
+		}
+		#top_bar{
+			position: fixed;
+			border-bottom: 1px solid #000;
+			width:100%;
+			margin:0px;
+			padding:5px; 
+			background: #fff;
+			z-index: 100;
+		}
+		#cont{
+			padding-top:35px;
+			padding-bottom:35px;
+		}
+		#bottom_bar{
+			position: fixed;
+			bottom:0px;
+			border-top: 1px solid #000;
+			width:100%;
+			margin:0px;
+			padding:5px;
+			background: #fff;
+			z-index: 50;			
+		}
+		#popup_cont{			
+			border:1px solid #000;
+			padding:2px;
+			overflow: auto;
+			margin: 5px;
+			margin-right: 15px;
+			display: none;
+
+		}
+		#tool_tip{
+			display: none;
+			position: absolute;
+			border:1px solid #000;
+			padding:2px;
+			z-index: 100;
+			background: #fff;
+			max-width: 200px;
+			word-wrap: break-word;
+		}
+		#prompt{
+			position: fixed;
+			left: 50%;
+			top: 50%;
+			z-index: 200;
+			border: solid 1px black;
+			background-color: white;
+			padding:5px;
+			display: none;
+		}
+		#bottom_control:hover{
+			cursor: pointer;
+		}
+		button:hover{
+			cursor: pointer;
+		}
+		button{
+			margin:5px;
+		}
+		.product_id:hover{
+			cursor: pointer;
+		}
+		.product_id{
+			text-decoration: underline;
+			color:#0645AD;
+		}
+
+		.compare tr:nth-child(even) .feature {background: #FF0000}
+		.compare tr:nth-child(odd) .feature {background: #CC0000}
+
+		tr:nth-child(even).matching {background: #669900}
+		tr:nth-child(odd).matching {background: #99FF33}
+
+		tr:nth-child(even).different {background: #CCCC00}
+		tr:nth-child(odd).different {background: #FFFF00}
+
+		tr.compadder {font-weight: bold;}
+		tr:nth-child(even).compadder {background: #66CCFF}
+		tr:nth-child(odd).compadder {background: #0066FF}
+
+		tr:nth-child(even) {background: #CCC}
+		tr:nth-child(odd) {background: #FFF}
+		
+		td{
+			padding:5px;
+		}
+	</style>
+</head>
+<body id="body">
+	<div id='tool_tip'></div>
+	<div id='top_bar'>
+		<div id='search_box'>
+			<input type='text' id='input_box' value='027242865891'><button id='keyword_search' type="button">Keyword Search</button><button id='upc_lookup' type="button">UPC Lookup</button><button id='temnos_id_lookup' type="button">Temnos Id Lookup</button><button  type="button" id="decode" style='display:none' onclick="Decode()">StartScan</button><button  type="button" id="stopDecode" style="display:none" onclick="StopDecode()">StopScan</button><input id="Take-Picture" type="file" accept="image/*;capture=camera" /><Canvas id="picCanvas" style="display:none" width="320" height="240"></Canvas>
+		</div>
+	</div>
+	<div id='prompt'></div>
+	<div id='cont'>
+		<table id="product_compare">
+		</table>
+	</div>
+	<div id='bottom_bar'><span id='bottom_control'>Show</span><div id="popup_cont"></div></div>
+<body>
+</html>

@@ -1,0 +1,628 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>PDB Products</title>
+<style type="text/css"></style>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js" ></script>
+<link rel="stylesheet" type="text/css" href="css/products.css">
+<script type="text/javascript">
+
+	var flag = false;
+	var data;
+	var attributes = {};
+	var identifiers = {};
+	var specs = {};
+	var tags = [];
+
+	function get_info(){
+		var identifier = document.getElementById("identifier").value;
+		$.ajax({
+			type: "GET",
+			url: "/products/asin/" + identifier+".json",
+			dataType: "json",
+			success: function(data){
+				console.log(data);		
+				display_data(data.products[0]);
+			},
+			error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function get_info_by_id(){
+		var identifier = document.getElementById("id").value;
+		$.ajax({
+			type: "GET",
+			url: "/products/" + identifier + ".json",
+			dataType: "json",
+			success: function(data){
+				console.log(data);		
+				display_data(data.product);
+			},
+			error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function display_data(data){
+		$("#info").empty();
+		var container = document.getElementById('info');
+		var identifier = document.getElementById("identifier").value;
+		var div = document.createElement('div');
+
+		if (data == null){
+			div.innerHTML += "<br>No products were found with the ASIN " + identifier;
+		}
+		else {
+			div.innerHTML += "<h2>" + data.name + "<img src=" + data.image_file + " height='100' width='auto' alt='Product Image'/></h2>";
+			div.innerHTML += "<strong>Description:</strong> " + data.short_description + "<br><br>";
+			div.innerHTML += "<strong>Categories:</strong> " + data.categories + "<br>";
+			div.innerHTML += "<br><ul>";
+
+			if(data.hasOwnProperty('identifiers')){
+				div.innerHTML += "<strong>Identifiers:</strong>"
+				$.each(data.identifiers, function(key, value) {
+					div.innerHTML += "<li>" + key + ": " + value + "</li>";
+				});
+				div.innerHTML += "<br>";
+			}
+
+			if(data.hasOwnProperty('specs')){
+				div.innerHTML += "<strong>Specs:</strong>"
+				$.each(data.specs, function(key, value) {
+					div.innerHTML += "<li>" + key + ": " + value + "</li>";
+				});
+				div.innerHTML += "<br>";
+			}
+
+			if(data.hasOwnProperty('tags')){
+				div.innerHTML += "<strong>Tags:</strong>"
+				$.each(data.tags, function(key, value) {
+					div.innerHTML += "<li>" + value + "</li>";
+				});
+				div.innerHTML += "<br>";
+			}
+
+			if(data.hasOwnProperty('attributes')){
+				div.innerHTML += "<strong>Attributes:</strong>";
+				$.each(data.attributes, function(key, value) {
+					div.innerHTML += "<li>" + key + ": " + value + "</li>";
+				});
+				div.innerHTML += "<br>";
+			}
+
+			if(data.hasOwnProperty('offers') && data.offers != null){
+				div.innerHTML += "<strong>Offers:</strong>";
+				$.each(data.offers, function (index, val) {
+					div.innerHTML += "<br>" + index;
+					$.each(data.offers[index], function(key, value) {
+						if(value == '[object Object]') {
+							div.innerHTML += "<li>" + key;
+							$.each(data.offers[index][key], function(k, v) {
+								div.innerHTML += "<ul><li type='square'>" + k + ": " + v + "</li></ul>";
+							});
+						}
+						else 
+							div.innerHTML += "<li>" + key + ": " + value + "</li>";
+					});
+				});
+				div.innerHTML += "</ul></li>";
+			}
+			div.innerHTML += "</ul>";
+			div.innerHTML += "<br>"
+			div.innerHTML += "<a id=" + data.id + " class='update'><strong>Update</strong></a>";
+			div.innerHTML += "<a id=" + data.id + " class='delete'><strong>Delete</strong></a><br><br>";
+		}
+		container.appendChild(div);
+
+		var e = document.getElementsByClassName('update');
+		for(var i=0; i < e.length; i++) {
+			e[i].addEventListener('click',function(){
+				get_product(data.id);
+			});
+		}
+
+		var e = document.getElementsByClassName('delete');
+		for(var i=0; i < e.length; i++) {
+			e[i].addEventListener('click',function(){
+				delete_product(data.id);
+			});
+		}
+	}
+
+	function get_product(id){
+		$.ajax({
+		    type: "GET",
+		    url: "/products/ " + id + ".json",
+		    dataType: "json",
+		    success: function(data){
+		    	data = data;
+		    	console.log(data);	
+		    	flag = true;
+		    	get_product_data(true, id, data);
+		    },
+		    error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function get_products(){
+		$.ajax({
+		    type: "GET",
+		    url: "/products.json",
+		    dataType: "json",
+		    success: function(data){
+		    	data = data;	
+		    	get_product_data(false, '', '');
+		    },
+		    error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function validate(flag,src){
+		var valid = true;
+		var inputs = document.getElementsByTagName('input');
+
+		for (var i=0; i < inputs.length; i++) {
+			if(inputs[i].value == "") {
+				if(inputs[i].name == "product[name]" || inputs[i].name == "product[identifiers][]" || inputs[i].name == "product[identifiers][value]" ) {
+					valid = false;
+					var error = document.getElementById('error');
+					error.innerHTML = "Name and/or identifiers cannot be blank";
+					error.style.display = "block";
+					return valid;
+				}		
+			}
+		}
+
+		if(flag){
+			update_product(src, $('#new_products').serialize());
+		}
+		else {
+			create_product($('#new_products').serialize());
+		}
+	}
+
+	function get_product_data(f, id, data) {
+
+		var ID, name, description, image, categories, identifiers = "";
+		var identifier_key, identifier_value = [];
+
+		(f) ? ID = id : ID = "";
+		(f) ? name = data.product.name : name = "";
+		(f) ? description = data.product.short_description : description = "";
+		(f) ? image = data.product.image_file : image = "";
+		(f) ? categories = data.product.categories : categories = "";
+
+		if (f == true) {
+			var table_identifiers = document.createElement("table");
+			table_identifiers.border = "1";	      
+			table_identifiers.setAttribute('id', 'identifiers');
+			var tbody_identifiers = document.createElement('tbody');
+			table_identifiers.appendChild(tbody_identifiers);
+			if(data.product.hasOwnProperty('identifiers')){
+				$.each(data.product.identifiers, function(key, value) {
+					create_row('identifiers', key, value, table_identifiers, tbody_identifiers);
+				});
+			}
+
+			var table_attributes = document.createElement("table");
+			table_attributes.border = "1";
+			table_attributes.setAttribute('id', 'attributes');
+			var tbody_attributes = document.createElement('tbody');
+			table_attributes.appendChild(tbody_attributes);
+			if(data.product.hasOwnProperty('attributes')){
+				$.each(data.product.attributes, function(key, value) {
+					create_row('attributes', key, value, table_attributes, tbody_attributes);
+				});		
+			}
+
+			var table_specs = document.createElement("table");
+			table_specs.border = "1";
+			table_specs.setAttribute('id', 'specs');
+			var tbody_specs = document.createElement('tbody');
+			table_specs.appendChild(tbody_specs);
+			if(data.product.hasOwnProperty('specs')){
+				$.each(data.product.specs, function(key, value) {
+					create_row('specs', key, value, table_specs, tbody_specs);
+				});
+			}
+
+			var table_tags = document.createElement("table");
+			table_tags.border = "1";
+			table_tags.setAttribute('id', 'tags');
+			var tbody_tags = document.createElement('tbody');
+			table_tags.appendChild(tbody_tags);
+			if(data.product.hasOwnProperty('tags')){
+				$.each(data.product.tags, function(key, value) {
+					create_row('tags', key, value, table_tags, tbody_tags);
+				});
+			}
+		}
+		else {
+			var table_identifiers = document.createElement("table");
+			table_identifiers.border = "1";	      
+			table_identifiers.setAttribute('id', 'identifiers');
+			var tbody_identifiers = document.createElement('tbody');
+			table_identifiers.appendChild(tbody_identifiers);
+			
+			var table_attributes = document.createElement("table");
+			table_attributes.border = "1";
+			table_attributes.setAttribute('id', 'attributes');
+			var tbody_attributes = document.createElement('tbody');
+			table_attributes.appendChild(tbody_attributes);
+
+			var table_specs = document.createElement("table");
+			table_specs.border = "1";
+			table_specs.setAttribute('id', 'specs');
+			var tbody_specs = document.createElement('tbody');
+			table_specs.appendChild(tbody_specs);
+
+			var table_tags = document.createElement("table");
+			table_tags.border = "1";
+			table_tags.setAttribute('id', 'tags');
+			var tbody_tags = document.createElement('tbody');
+			table_tags.appendChild(tbody_tags);
+		}
+
+		build_form(ID, name, description, image, categories, table_attributes, tbody_attributes, table_identifiers, tbody_identifiers, table_specs, tbody_specs, table_tags, tbody_tags);
+	}
+
+	function create_row(ident, key, value, table, tbody) {
+		var tr = document.createElement('tr');
+		tbody.appendChild(tr);
+		if (ident == 'tags')
+			create_single_table(ident, value, tr, table, tbody)
+		else
+			create_table(ident, key, value, tr, table, tbody)
+	}
+
+	function create_single_table(ident, value, tr, table, tbody){
+		var td = document.createElement('td');
+		td.width='10';
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'less');
+		i.setAttribute('id', 'less');
+		i.setAttribute('value', '-');
+		i.onclick = function() { 
+			var i = tr.rowIndex;
+			tags.splice(i);
+    		table.deleteRow(i);
+		};
+		td.appendChild(i);
+	    tr.appendChild(td);
+	    	   
+		var td_val = document.createElement('td');
+		td_val.width='75';
+		var i = document.createElement('input');
+		i.setAttribute('type', 'text');
+		i.setAttribute('name', 'product[tags][]');
+		i.setAttribute('id', 'val');
+		i.setAttribute('value', value);
+		if (value != '')
+			tags.push(value);
+		td_val.appendChild(i);
+	    tr.appendChild(td_val);
+
+		td_val.onchange = function(){
+	    	var index = tr.rowIndex;
+	    	var new_value = $('#tags tbody tr #val')[index].value;
+			i.setAttribute('name', 'product[tags][]');
+			i.setAttribute('value', new_value);
+	    	if (new_value != '') 
+	    		tags.push(new_value);
+	    }
+	}
+
+	function create_table(ident, key, value, tr, table, tbody){
+		var td = document.createElement('td');
+		td.width='10';
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'less');
+		i.setAttribute('id', 'less');
+		i.setAttribute('value', '-');
+		i.onclick = function() { 
+			var i = tr.rowIndex;
+    		var element = $('#'+ident+' tbody tr #key_val')[i].value;
+    		if (ident == 'attributes') {
+    			delete attributes[element];
+    		}
+    		else if (ident == 'identifiers') {
+    			delete identifiers[element];
+    		}
+    		else if (ident == 'specs'){
+    			delete specs[element];
+    		}
+    		table.deleteRow(i);
+		};
+		td.appendChild(i);
+	    tr.appendChild(td);
+	    	   
+	   	//key column 
+		var td_key = document.createElement('td');
+		td_key.width='75';
+		var i = document.createElement('input');
+		i.setAttribute('type', 'text');
+		i.setAttribute('value', key);
+		i.setAttribute('id', 'key_val');
+		td_key.appendChild(i);
+	    tr.appendChild(td_key);
+
+	    //value column
+	    var td_val = document.createElement('td');
+		td_val.width='75';
+		var i = document.createElement('input');
+		i.setAttribute('type', 'text');
+		i.setAttribute('name', 'product['+ident+']['+key+']');
+		i.setAttribute('id', 'val');
+		i.setAttribute('value', value);
+		if (key == '' || value == '') {}
+		else {
+			if (ident == 'attributes')
+				attributes[key] = value;
+			else if (ident == 'identifiers')
+				identifiers[key] = value;
+			else if (ident == 'specs')
+					specs[key] = value;
+		}
+		
+		td_val.appendChild(i);
+	    tr.appendChild(td_val);
+
+	    td_key.onchange = function(){
+	    	var index = tr.rowIndex;
+	    	var new_key = $('#'+ident+' tbody tr #key_val')[index].value;
+	    	var new_value = $('#'+ident+' tbody tr #val')[index].value;
+	    	if (new_key == '' || new_value == '') {}
+	    	else { 
+	    		if (ident == 'attributes')
+	    			attributes[new_key] = new_value;
+	    		else if (ident == 'identifiers')
+	    			identifiers[new_key] = new_value;
+	    		else if (ident == 'specs')
+	    			specs[new_key] = new_value;
+	    	}
+	    };
+	    td_val.onchange = function(){
+	    	var index = tr.rowIndex;
+	    	var new_key = $('#'+ident+' tbody tr #key_val')[index].value;
+	    	var new_value = $('#'+ident+' tbody tr #val')[index].value;
+			i.setAttribute('name', 'product['+ident+']['+new_key+']');
+			i.setAttribute('value', new_value);
+	    	if (new_key == '' || new_value == '') {}
+	    	else {
+	    		if (ident == 'attributes')
+	    			attributes[new_key] = new_value;
+	    		else if (ident == 'identifiers')
+	    			identifiers[new_key] = new_value;
+	    		else if (ident == 'specs')
+	    			specs[new_key] = new_value;
+	    	}
+	    }
+	}
+
+	function build_form(id, name, description, image, categories, attributes, tbody_attributes, identifiers, tbody_identifiers, specs, tbody_specs, tags, tbody_tags){
+		$("#info").empty();
+		var f = document.createElement("form");
+		f.setAttribute('accept-charset',"UTF-8");
+		f.setAttribute('class',"new_products");
+		f.setAttribute('id',"new_products");
+
+		//Name
+		var label = document.createElement("Label");
+		label.innerHTML = "Name: ";
+		f.appendChild(label);
+		var i = document.createElement("input");
+		i.setAttribute('type', 'text');
+		i.setAttribute('id', 'name');
+		i.setAttribute('name', 'product[name]');
+		i.setAttribute('value', name);
+		f.appendChild(i);
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Description
+		var label = document.createElement("Label");
+		label.innerHTML = "Description: ";
+		f.appendChild(label);
+		var i = document.createElement("input");
+		i.setAttribute('type', 'text');
+		i.setAttribute('id', 'short_description');
+		i.setAttribute('name', 'product[short_description]');
+		i.setAttribute('value', description);
+		f.appendChild(i);
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Image File URL
+		var label = document.createElement("Label");
+		label.innerHTML = "Image File URL: ";
+		f.appendChild(label);
+		var i = document.createElement("input");
+		i.setAttribute('type', 'text');
+		i.setAttribute('id', 'image_file_url');
+		i.setAttribute('name', 'product[image_file]');
+		i.setAttribute('value', image);
+		f.appendChild(i);
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Categories
+		var label = document.createElement("Label");
+		label.innerHTML = "Categories: ";
+		f.appendChild(label);
+		var i = document.createElement("input");
+		i.setAttribute('type', 'text');
+		i.setAttribute('id', 'categories');
+		i.setAttribute('name', 'product[categories]');
+		i.setAttribute('value', categories);
+		f.appendChild(i);
+		var b = document.createElement("br");
+		f.appendChild(b);
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Identifiers
+		var label = document.createElement("Label");
+		label.innerHTML = "Identifiers: ";
+		f.appendChild(label);
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'more');
+		i.setAttribute('id', 'more');
+		i.setAttribute('value', '+');
+		f.appendChild(i);
+		f.appendChild(identifiers);
+		i.onclick = function(){
+			create_row('identifiers', '', '', identifiers, tbody_identifiers)
+		};
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Tags
+		var label = document.createElement("Label");
+		label.innerHTML = "Tags: ";
+		f.appendChild(label);
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'more');
+		i.setAttribute('id', 'more');
+		i.setAttribute('value', '+');
+		f.appendChild(i);
+		f.appendChild(tags);
+		i.onclick = function(){
+			create_row('tags', '', '', tags, tbody_tags)
+		};
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Specs
+		var label = document.createElement("Label");
+		label.innerHTML = "Specs: ";
+		f.appendChild(label);
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'more');
+		i.setAttribute('id', 'more');
+		i.setAttribute('value', '+');
+		f.appendChild(i);
+		f.appendChild(specs);
+		i.onclick = function(){
+			create_row('specs', '', '', specs, tbody_specs)
+		};
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Attributes
+		var label = document.createElement("Label");
+		label.innerHTML = "Attributes: ";
+		f.appendChild(label);
+		var i = document.createElement('input');
+		i.setAttribute('type', 'button');
+		i.setAttribute('name', 'more');
+		i.setAttribute('id', 'more');
+		i.setAttribute('value', '+');
+		f.appendChild(i);
+		f.appendChild(attributes);
+		i.onclick = function(){
+			create_row('attributes', '', '', attributes, tbody_attributes)
+		};
+		var b = document.createElement("br");
+		f.appendChild(b);
+
+		//Submit
+		var s = document.createElement("a"); 
+		s.setAttribute('name',"Submit");
+		s.setAttribute('id', 'save');
+		s.innerHTML = "Save";
+		s.addEventListener('click', function(){validate(flag,id);});
+		f.appendChild(s);
+
+		document.getElementsByClassName('info')[0].appendChild(f);
+
+		var e = document.createElement('div');
+		e.setAttribute('id',"error");
+		e.setAttribute('name',"error");
+		e.style.color = 'red';
+		e.style.display = "none";
+		e.innerHTML = "";
+		f.appendChild(e);
+	}
+
+	function create_product(data){
+		$.ajax({
+		    type: "POST",
+		    url: "/products",
+		    data: data,
+		    dataType: "json",
+		    success: function(data){
+		    	console.log("Product was created");
+		    	window.location.reload();
+		    },
+		    error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function update_product(id, data){
+		$.ajax({
+		    type: "PUT",
+		    url: "/products/" + id + ".json",
+		    data: data,
+			dataType: "json",
+		    success: function(data){
+		    		window.location.reload();
+		    },
+		    error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+
+	function delete_product(id) {
+		$.ajax({
+		    type: "DELETE",
+		    url: "/products/" + id + ".json",
+		    data: data,
+			dataType: "json",
+		    success: 
+		    	window.location.reload(),
+		    error: function(errMsg) {
+		    	console.log(errMsg);
+		        alert("An Error Occurred Please Try Again....");
+		    }
+		});
+	}
+</script>
+</head>
+
+<body>
+<div class="overlay"></div>
+<div id="container" class="container">
+	<div>ASIN: <input id="identifier" name="identifier" type="text"/>
+		<input type="submit" value="Search" onclick="get_info();"/>
+		ID: <input id="id" name="identifier" type="text"/>
+		<input type="submit" value="Search" onclick="get_info_by_id();"/>
+		<input type="submit" value="Create New Product" onclick="get_products()"/>
+		<br><br><br><br>
+	<div id="info" class="info"></div>
+</div>
+<div id="footer">
+	<img src="images/Purch_logo-redorange.png" alt="Purch Logo" height="18"/>
+</div>
+</body>
+</html>
